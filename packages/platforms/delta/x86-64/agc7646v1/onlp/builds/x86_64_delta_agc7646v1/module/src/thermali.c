@@ -37,21 +37,35 @@
         }                                       \
     } while(0)
 
-static char *thermal_path[] =  /* must map with onlp_thermal_id */
-{
-    "reserved",
-    "8-004d/hwmon/hwmon1/temp1_input"
-};
-
 #define dni_onlp_thermal_threshold(WARNING_DEFAULT, ERROR_DEFAULT, SHUTDOWN_DEFAULT){ \
     WARNING_DEFAULT,                                                                  \
     ERROR_DEFAULT,                                                                    \
     SHUTDOWN_DEFAULT,                                                                 \
 }
 
+static char* cpu_coretemp_files[] =
+{
+    "/sys/devices/platform/coretemp.0/hwmon/hwmon0/temp1_input",
+    "/sys/devices/platform/coretemp.0/hwmon/hwmon0/temp2_input",
+    "/sys/devices/platform/coretemp.0/hwmon/hwmon0/temp3_input",
+    "/sys/devices/platform/coretemp.0/hwmon/hwmon0/temp4_input",
+    "/sys/devices/platform/coretemp.0/hwmon/hwmon0/temp5_input",
+    "/sys/devices/platform/coretemp.0/hwmon/hwmon0/temp6_input",
+    "/sys/devices/platform/coretemp.0/hwmon/hwmon0/temp7_input",
+    "/sys/devices/platform/coretemp.0/hwmon/hwmon0/temp8_input",
+    "/sys/devices/platform/coretemp.0/hwmon/hwmon0/temp9_input",
+    NULL,
+};
+
+
+
 /* Static values */
 static onlp_thermal_info_t thermal_info[] = {
-	{ }, /* Not used */
+    { }, /* Not used */
+    { { ONLP_THERMAL_ID_CREATE(THERMAL_CPU_CORE), "CPU Core",   0},
+        ONLP_THERMAL_STATUS_PRESENT,
+        ONLP_THERMAL_CAPS_ALL, 0, ONLP_THERMAL_THRESHOLD_INIT_DEFAULTS
+    },
     { { ONLP_THERMAL_ID_CREATE(THERMAL_1_ON_CPU_BOARD), "Board sensor near CPU (U36)", 0},
         ONLP_THERMAL_STATUS_PRESENT,
         ONLP_THERMAL_CAPS_ALL, 0, ONLP_THERMAL_THRESHOLD_INIT_DEFAULTS
@@ -68,22 +82,18 @@ static onlp_thermal_info_t thermal_info[] = {
         ONLP_THERMAL_STATUS_PRESENT,
         ONLP_THERMAL_CAPS_ALL, 0, ONLP_THERMAL_THRESHOLD_INIT_DEFAULTS
     },
-    { { ONLP_THERMAL_ID_CREATE(THERMAL_5_ON_MAIN_BOARD_TEMP_3_1), "Board sensor near MAC (U3 REMOTE)", 0},
+    { { ONLP_THERMAL_ID_CREATE(THERMAL_5_ON_MAIN_BOARD_TEMP_3), "Board sensor near MAC (U3 LOCAL)", 0},
         ONLP_THERMAL_STATUS_PRESENT,
         ONLP_THERMAL_CAPS_ALL, 0, ONLP_THERMAL_THRESHOLD_INIT_DEFAULTS
     },
-    { { ONLP_THERMAL_ID_CREATE(THERMAL_6_ON_MAIN_BOARD_TEMP_3_2), "Board sensor near MAC (U3 LOCAL)", 0},
+    { { ONLP_THERMAL_ID_CREATE(THERMAL_6_ON_PSU1), "PSU-1 internal sensor", ONLP_PSU_ID_CREATE(PSU1_ID)},
         ONLP_THERMAL_STATUS_PRESENT,
         ONLP_THERMAL_CAPS_ALL, 0, ONLP_THERMAL_THRESHOLD_INIT_DEFAULTS
     },
-    { { ONLP_THERMAL_ID_CREATE(THERMAL_7_ON_PSU1), "PSU-1 internal sensor", ONLP_PSU_ID_CREATE(PSU1_ID)},
+    { { ONLP_THERMAL_ID_CREATE(THERMAL_7_ON_PSU2), "PSU-2 internal sensor", ONLP_PSU_ID_CREATE(PSU2_ID)},
         ONLP_THERMAL_STATUS_PRESENT,
         ONLP_THERMAL_CAPS_ALL, 0, ONLP_THERMAL_THRESHOLD_INIT_DEFAULTS
     },
-    { { ONLP_THERMAL_ID_CREATE(THERMAL_8_ON_PSU2), "PSU-2 internal Sensor", ONLP_PSU_ID_CREATE(PSU2_ID)},
-        ONLP_THERMAL_STATUS_PRESENT,
-        ONLP_THERMAL_CAPS_ALL, 0, ONLP_THERMAL_THRESHOLD_INIT_DEFAULTS
-    }
 };
 
 /*
@@ -113,8 +123,6 @@ onlp_thermali_info_get(onlp_oid_t id, onlp_thermal_info_t* info)
     int rv = ONLP_STATUS_OK;
     UINT4 multiplier = 1000;
     UINT4 u4Data = 0;
-    char fullpath[VENDOR_MAX_PATH_SIZE] = {0};
-    int r_data = 0;
 
     VALIDATE(id);
     local_id = ONLP_OID_ID_GET(id);
@@ -123,9 +131,8 @@ onlp_thermali_info_get(onlp_oid_t id, onlp_thermal_info_t* info)
     if (strcmp(thermal_dev_list[local_id].dev_name, "") == 0 &&
                 thermal_dev_list[local_id].id != 0)
     {
-        sprintf(fullpath, "%s%s", PREFIX_PATH, thermal_path[local_id]);
-        r_data = dni_i2c_lock_read_attribute(fullpath, ATTRIBUTE_BASE_DEC);
-        info->mcelsius = r_data;
+        int rv = onlp_file_read_int_max(&info->mcelsius, cpu_coretemp_files);
+        return rv;
     }
     else if (thermal_dev_list[local_id].dev_name != NULL &&
              local_id <= NUM_OF_THERMAL_ON_MAIN_BROAD + NUM_OF_PSU_ON_MAIN_BROAD)

@@ -121,14 +121,14 @@ int dni_check_file_exist(char *file_path, long *file_time)
 vendor_dev_t thermal_dev_list[] =
 {
     {"",                 THERMAL_SENSOR, THERMAL_RESERVED,                 0},
-    {"",                 THERMAL_SENSOR, THERMAL_1_ON_CPU_BOARD,           0},
+    {"",                 THERMAL_SENSOR, THERMAL_CPU_CORE,                 0},
+    {"TMP75-4D",         THERMAL_SENSOR, THERMAL_1_ON_CPU_BOARD,           0},
     {"TMP75_FAN-4F",     THERMAL_SENSOR, THERMAL_2_ON_FAN_BOARD,           0},
     {"TMP75-4E",         THERMAL_SENSOR, THERMAL_3_ON_MAIN_BOARD_TEMP_1,   0},
     {"TMP75-4B",         THERMAL_SENSOR, THERMAL_4_ON_MAIN_BOARD_TEMP_2,   0},
-    {"TMP431_REMOTE-4C", THERMAL_SENSOR, THERMAL_5_ON_MAIN_BOARD_TEMP_3_1, 0},
-    {"TMP431_LOCAL-4C",  THERMAL_SENSOR, THERMAL_6_ON_MAIN_BOARD_TEMP_3_2, 0},
-    {"PSU1_TEMP_1",      THERMAL_SENSOR, THERMAL_7_ON_PSU1,                0},
-    {"PSU2_TEMP_1",      THERMAL_SENSOR, THERMAL_8_ON_PSU2,                0}
+    {"TMP431_LOCAL-4C",  THERMAL_SENSOR, THERMAL_5_ON_MAIN_BOARD_TEMP_3,   0},
+    {"PSU1_TEMP_1",      THERMAL_SENSOR, THERMAL_6_ON_PSU1,                0},
+    {"PSU2_TEMP_1",      THERMAL_SENSOR, THERMAL_7_ON_PSU2,                0},
 };
 
 vendor_dev_t fan_dev_list[] =
