@@ -18,39 +18,38 @@
 #define SWPLD1_ADDR 0x6a
 #define SWPLD3_ADDR 0x73
 
-#define SWPLD1_QSFP_MODSEL_REG 0x64
-#define SWPLD1_QSFP_MODSEL_VAL 0x3f
-#define SWPLD3_QSFP_MUX_DISABLE     0x10
-#define SWPLD3_QSFP_SFP_CH_DISABLE  0xFF
+#define SWPLD1_QSFP_RESPOND_REG     0x64
+#define SWPLD1_QSFP_ALL_NOT_RESPOND 0x3f
 
 /* CPLD */
-#define DEF_DEV_NUM           1
-#define BUS0_DEV_NUM          2
-#define BUS0_BASE_NUM         1
-#define BUS0_MUX_REG          0x14
-#define MUX_VAL_SERDES_SWPLD3 0xFF
-#define MUX_VAL_IDEEPROM      0xFC
+#define DEF_DEV_NUM              1
+#define BUS0_DEV_NUM             2
+#define BUS0_BASE_NUM            1
+#define BUS0_MUX_REG             0x14
+#define MUX_VAL_FRONT_PANEL_PORT 0xFF
+#define MUX_VAL_IDEEPROM         0xFC
 
 /* SWPLD3 */
-#define BUS2_QSFP_DEV_NUM     6
-#define BUS2_QSFP_BASE_NUM    41
-#define BUS2_QSFP_MUX_REG     0x20
-#define BUS2_SFP_DEV_NUM      46
-#define BUS2_SFP_BASE_NUM     51
-#define BUS2_SFP_MUX_REG      0x21
-#define SWPLD3_SFP_CH1_EN     0x00
-#define SWPLD3_SFP_CH2_EN     0x10
-#define SWPLD3_SFP_CH3_EN     0x20
-#define SWPLD3_SFP_CH4_EN     0x30
-#define SWPLD3_SFP_CH5_EN     0x40
-#define SWPLD3_SFP_CH6_EN     0x50
-#define SWPLD3_QSFP_CH_EN     0x60
-#define SWPLD3_SFP_CH_DISABLE 0x70
-#define SWPLD3_SFP_PORT_9     9
-#define SWPLD3_SFP_PORT_19    19
-#define SWPLD3_SFP_PORT_29    29
-#define SWPLD3_SFP_PORT_39    39
-#define SWPLD3_SFP_PORT_46    46
+#define BUS2_QSFP_DEV_NUM       6
+#define BUS2_QSFP_BASE_NUM      41
+#define BUS2_SFP_DEV_NUM        46
+#define BUS2_SFP_BASE_NUM       51
+#define SWPLD3_QSFP_MUX_REG     0x20
+#define SWPLD3_SFP_MUX_REG      0x21
+#define SWPLD3_SFP_CH1_EN       0x00
+#define SWPLD3_SFP_CH2_EN       0x10
+#define SWPLD3_SFP_CH3_EN       0x20
+#define SWPLD3_SFP_CH4_EN       0x30
+#define SWPLD3_SFP_CH5_EN       0x40
+#define SWPLD3_SFP_CH6_EN       0x50
+#define SWPLD3_SFP_CH_DISABLE   0xff
+#define SWPLD3_QSFP_MUX_EN      0x00
+#define SWPLD3_QSFP_MUX_DISABLE 0x10
+#define SWPLD3_SFP_PORT_9       9
+#define SWPLD3_SFP_PORT_19      19
+#define SWPLD3_SFP_PORT_29      29
+#define SWPLD3_SFP_PORT_39      39
+#define SWPLD3_SFP_PORT_46      46
 
 
 /* BMC IMPI CMD */
@@ -906,13 +905,13 @@ static struct cpld_mux_platform_data agc7646v1_swpld3_mux_platform_data[] = {
         .parent         = BUS2,
         .base_nr        = BUS2_QSFP_BASE_NUM,
         .cpld           = NULL,
-        .reg_addr       = BUS2_QSFP_MUX_REG,
+        .reg_addr       = SWPLD3_QSFP_MUX_REG,
     },
     {
         .parent         = BUS2,
         .base_nr        = BUS2_SFP_BASE_NUM,
         .cpld           = NULL,
-        .reg_addr       = BUS2_SFP_MUX_REG,
+        .reg_addr       = SWPLD3_SFP_MUX_REG,
     },
 };
 
@@ -970,7 +969,7 @@ static int cpld_mux_select(struct i2c_mux_core *muxc, u32 chan)
                 cpld_mux_val = MUX_VAL_IDEEPROM;
                 break;
             case 1:
-                cpld_mux_val = MUX_VAL_SERDES_SWPLD3;
+                cpld_mux_val = MUX_VAL_FRONT_PANEL_PORT;
                 break;
             default:
                 cpld_mux_val = MUX_VAL_IDEEPROM;
@@ -998,38 +997,22 @@ static int swpld3_mux_select(struct i2c_mux_core *muxc, u32 chan)
 
     if ( mux->data.base_nr == BUS2_QSFP_BASE_NUM ){
         /* Set QSFP module respond */
-        swpld1_qsfp_modsel_val = SWPLD1_QSFP_MODSEL_VAL & (~(1 << chan));
         set_cmd = CMD_SETDATA;
         cmd_data[0] = BMC_SWPLD_BUS;
         cmd_data[1] = SWPLD1_ADDR;
-        cmd_data[2] = SWPLD1_QSFP_MODSEL_REG;
-        cmd_data[3] = swpld1_qsfp_modsel_val;
+        cmd_data[2] = SWPLD1_QSFP_RESPOND_REG;
+        cmd_data[3] = SWPLD1_QSFP_ALL_NOT_RESPOND & (~(1 << chan));
         cmd_data_len = sizeof(cmd_data);
 	ret = dni_bmc_cmd(set_cmd, cmd_data, cmd_data_len);
         if (ret != 0) {
             return -EIO;
         }
 
-        /* QSFP channel enable */
-        swpld3_qsfp_ch_en = SWPLD3_QSFP_CH_EN;
-        set_cmd = CMD_SETDATA;
-        cmd_data[0] = BMC_SWPLD_BUS;
-        cmd_data[1] = SWPLD3_ADDR;
-        cmd_data[2] = BUS2_SFP_MUX_REG;
-        cmd_data[3] = swpld3_qsfp_ch_en;
-        cmd_data_len = sizeof(cmd_data);
-        ret = dni_bmc_cmd(set_cmd, cmd_data, cmd_data_len);
-        if (ret != 0) {
-            return -EIO;
-        }
-
         /* QSFP channel selection */
-        swpld3_mux_val = chan;
-        set_cmd = CMD_SETDATA;
         cmd_data[0] = BMC_SWPLD_BUS;
         cmd_data[1] = SWPLD3_ADDR;
-        cmd_data[2] = BUS2_QSFP_MUX_REG;
-        cmd_data[3] = swpld3_mux_val;
+        cmd_data[2] = SWPLD3_QSFP_MUX_REG;
+        cmd_data[3] = chan;
         cmd_data_len = sizeof(cmd_data);
         ret = dni_bmc_cmd(set_cmd, cmd_data, cmd_data_len);
         if (ret != 0) {
@@ -1039,12 +1022,11 @@ static int swpld3_mux_select(struct i2c_mux_core *muxc, u32 chan)
     }
     else if ( mux->data.base_nr == BUS2_SFP_BASE_NUM ){
         /* Disable all QSFP modules respond */
-        swpld1_qsfp_modsel_val = SWPLD1_QSFP_MODSEL_VAL;
         set_cmd = CMD_SETDATA;
         cmd_data[0] = BMC_SWPLD_BUS;
         cmd_data[1] = SWPLD1_ADDR;
-        cmd_data[2] = SWPLD1_QSFP_MODSEL_REG;
-        cmd_data[3] = swpld1_qsfp_modsel_val;
+        cmd_data[2] = SWPLD1_QSFP_RESPOND_REG;
+        cmd_data[3] = SWPLD1_QSFP_ALL_NOT_RESPOND;
         cmd_data_len = sizeof(cmd_data);
 	ret = dni_bmc_cmd(set_cmd, cmd_data, cmd_data_len);
         if (ret != 0) {
@@ -1081,11 +1063,9 @@ static int swpld3_mux_select(struct i2c_mux_core *muxc, u32 chan)
         }
 
         /* SFP channel selection */
-        swpld3_mux_val = swpld3_mux_val;
-        set_cmd = CMD_SETDATA;
         cmd_data[0] = BMC_SWPLD_BUS;
         cmd_data[1] = SWPLD3_ADDR;
-        cmd_data[2] = BUS2_SFP_MUX_REG;
+        cmd_data[2] = SWPLD3_SFP_MUX_REG;
         cmd_data[3] = swpld3_mux_val;
         cmd_data_len = sizeof(cmd_data);
         ret = dni_bmc_cmd(set_cmd, cmd_data, cmd_data_len);
@@ -1102,33 +1082,29 @@ static int swpld3_mux_select(struct i2c_mux_core *muxc, u32 chan)
 
 static int swpld3_mux_deselect(struct i2c_mux_core *muxc, u32 chan)
 {
-    u8 swpld3_qsfp_mux_disable = 0;
-    u8 swpld3_qsfp_sfp_ch_disable = 0;
     int ret;
     uint8_t cmd_data[4] = {0};
     uint8_t set_cmd;
     int cmd_data_len;
 
     /* Disable QSFP mux */
-    swpld3_qsfp_mux_disable = SWPLD3_QSFP_MUX_DISABLE;
     set_cmd = CMD_SETDATA;
     cmd_data[0] = BMC_SWPLD_BUS;
     cmd_data[1] = SWPLD3_ADDR;
-    cmd_data[2] = BUS2_QSFP_MUX_REG;
-    cmd_data[3] = swpld3_qsfp_mux_disable;
+    cmd_data[2] = SWPLD3_QSFP_MUX_REG;
+    cmd_data[3] = SWPLD3_QSFP_MUX_DISABLE;
     cmd_data_len = sizeof(cmd_data);
     ret = dni_bmc_cmd(set_cmd, cmd_data, cmd_data_len);
     if (ret != 0) {
         return -EIO;
     }
 
-    /* SFP/QSFP channel disable */
-    swpld3_qsfp_sfp_ch_disable = SWPLD3_QSFP_SFP_CH_DISABLE;
+    /* SFP channel disable */
     set_cmd = CMD_SETDATA;
     cmd_data[0] = BMC_SWPLD_BUS;
     cmd_data[1] = SWPLD3_ADDR;
-    cmd_data[2] = BUS2_SFP_MUX_REG;
-    cmd_data[3] = swpld3_qsfp_sfp_ch_disable;
+    cmd_data[2] = SWPLD3_SFP_MUX_REG;
+    cmd_data[3] = SWPLD3_SFP_CH_DISABLE;
     cmd_data_len = sizeof(cmd_data);
     ret = dni_bmc_cmd(set_cmd, cmd_data, cmd_data_len);
     if (ret != 0) {
